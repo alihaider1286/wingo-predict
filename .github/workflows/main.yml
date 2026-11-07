@@ -3,22 +3,27 @@ name: Build CRACKER Wingo Scanner EXE
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: windows-latest
 
+    defaults:
+      run:
+        working-directory: "CrackerWingo_EXE_Builder (1)"
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install Tesseract
+      - name: Install Tesseract OCR
         run: choco install tesseract -y --no-progress
 
       - name: Bundle Tesseract
@@ -29,27 +34,29 @@ jobs:
       - name: Configure bundled OCR
         shell: pwsh
         run: |
-          $p = "cracker_wingo_scanner.py"
-          $s = Get-Content $p -Raw
-          $replacement = @'
-          import pytesseract
+          $file = "cracker_wingo_scanner.py"
+          $source = Get-Content $file -Raw
+          $insert = @'
           import os
           if getattr(sys, "frozen", False):
               _tess = Path(sys._MEIPASS) / "Tesseract-OCR"
               pytesseract.pytesseract.tesseract_cmd = str(_tess / "tesseract.exe")
               os.environ["TESSDATA_PREFIX"] = str(_tess / "tessdata")
           '@
-          $s = $s.Replace("import pytesseract", $replacement)
-          Set-Content $p $s
+          $source = $source.Replace("import pytesseract", "import pytesseract`n" + $insert)
+          Set-Content -Path $file -Value $source -Encoding utf8
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
       - name: Build EXE
-        run: pyinstaller --noconfirm --clean --onefile --windowed --name CrackerWingoScanner --add-data "Tesseract-OCR;Tesseract-OCR" cracker_wingo_scanner.py
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name CrackerWingoScanner --add-data "Tesseract-OCR;Tesseract-OCR" cracker_wingo_scanner.py
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: CRACKER-Wingo-Scanner
-          path: dist/CrackerWingoScanner.exe
+          path: "CrackerWingo_EXE_Builder (1)/dist/CrackerWingoScanner.exe"
