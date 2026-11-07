@@ -287,7 +287,7 @@ class Scanner(QWidget):
             self.status.setText("Chart OCR captured. Check OCR text against the visible chart; unclear text requires a tighter selection.")
         except Exception as e:
             self.notify("Chart OCR error",str(e))
-        def auto_scan(self):
+           def auto_scan(self):
         """Timer callback for periodic history capture."""
         self.scan_history()
     def toggle_auto(self):
